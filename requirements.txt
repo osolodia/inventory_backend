@@ -3,3 +3,5 @@ uvicorn[standart]
 sqlalchemy
 pydantic
 python-dotenv
+pymysql
+alembic
