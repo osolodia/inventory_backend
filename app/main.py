@@ -30,7 +30,7 @@ app.include_router(units.router)
 app.include_router(employees.router)
 app.include_router(auth.router)
 
-# Корневой эндпоинт (опционально)
+# Корневой эндпоинт
 @app.get("/")
 def root():
     return {"message": "Inventory API is running"}
