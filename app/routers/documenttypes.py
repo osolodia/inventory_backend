@@ -27,32 +27,3 @@ def get_document_type(document_type_id: int, db: Session = Depends(get_db)):
     if not doc_type:
         raise HTTPException(status_code=404, detail="DocumentType not found")
     return doc_type
-
-@router.post("/", response_model=DocumentTypeOut)
-def create_document_type(document_type: DocumentTypeCreate, db: Session = Depends(get_db)):
-    db_doc_type = DocumentType(**document_type.dict())
-    db.add(db_doc_type)
-    db.commit()
-    db.refresh(db_doc_type)
-    return db_doc_type
-
-@router.put("/{document_type_id}", response_model=DocumentTypeOut)
-def update_document_type(document_type_id: int, document_type: DocumentTypeCreate, db: Session = Depends(get_db)):
-    db_doc_type = db.query(DocumentType).filter(DocumentType.id == document_type_id).first()
-    if not db_doc_type:
-        raise HTTPException(status_code=404, detail="DocumentType not found")
-    
-    db_doc_type.name = document_type.name
-    db.commit()
-    db.refresh(db_doc_type)
-    return db_doc_type
-
-@router.delete("/{document_type_id}")
-def delete_document_type(document_type_id: int, db: Session = Depends(get_db)):
-    db_doc_type = db.query(DocumentType).filter(DocumentType.id == document_type_id).first()
-    if not db_doc_type:
-        raise HTTPException(status_code=404, detail="DocumentType not found")
-    
-    db.delete(db_doc_type)
-    db.commit()
-    return {"detail": "DocumentType deleted"}

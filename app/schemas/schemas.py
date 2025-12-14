@@ -17,7 +17,7 @@ class CompanyTypeCreate(BaseModel):
 class CompanyOut(BaseModel):
     id: int
     name: str
-    company_type: Optional[str] = None 
+    company_type: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -37,21 +37,49 @@ class DocumentTypeOut(BaseModel):
 class DocumentTypeCreate(BaseModel):
     name: str
 
+# DocumentLine
+class DocumentLineOut(BaseModel):
+    id: int
+    quantity: int
+    actual_quantity: Optional[int] = None
+    product_id: int
+    document_id: int
+    storage_zone_sender_id: Optional[int] = None
+    storage_zone_receiver_id: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
+class DocumentLineCreate(BaseModel):
+    quantity: int
+    actual_quantity: Optional[int] = None
+    product_id: int
+    document_id: int
+    storage_zone_sender_id: Optional[int] = None
+    storage_zone_receiver_id: Optional[int] = None
+
+class DocumentLineUpdate(BaseModel):
+    quantity: Optional[int] = None
+    actual_quantity: Optional[int] = None
+    product_id: Optional[int] = None
+    storage_zone_sender_id: Optional[int] = None
+    storage_zone_receiver_id: Optional[int] = None
+
 # Document
 class DocumentOut(BaseModel):
     id: int
     number: str
-    date: str  
+    date: date
     comment: Optional[str] = None
-    company: Optional[str] = None  
-    document_type: Optional[str] = None  
+    company_id: Optional[int] = None
+    document_type_id: int
 
     class Config:
         orm_mode = True
 
 class DocumentCreate(BaseModel):
     number: str
-    date: str 
+    date: date
     comment: Optional[str] = None
     company_id: Optional[int] = None
     document_type_id: int
@@ -62,24 +90,6 @@ class DocumentUpdate(BaseModel):
     comment: Optional[str] = None
     company_id: Optional[int] = None
     document_type_id: Optional[int] = None
-
-#DocumentLine
-class DocumentLine(BaseModel):
-    id: int
-    quantity: int
-    actual_quantity: Optional[int] = None
-    product_id: int
-    document_id: int
-    storage_zone_sender_id: Optional[int] = None
-    storage_zone_receiver_id: Optional[int] = None
-
-class DocumentLineCreate(BaseModel):
-    quantity: int
-    actual_quantity: Optional[int] = None
-    product_id: int
-    document_id: int
-    storage_zone_sender_id: Optional[int] = None
-    storage_zone_receiver_id: Optional[int] = None
 
 # Category 
 class CategoryOut(BaseModel):
@@ -92,7 +102,7 @@ class CategoryOut(BaseModel):
 class CategoryCreate(BaseModel):
     name: str
 
-#Employee
+# Employee
 class EmployeeOut(BaseModel):
     login: str
     password: str
@@ -179,7 +189,6 @@ class StorageConditionOut(BaseModel):
     class Config:
         orm_mode = True
 
-
 class StorageConditionCreate(BaseModel):
     name: str
 
@@ -192,7 +201,6 @@ class StorageZoneOut(BaseModel):
 
     class Config:
         orm_mode = True
-
 
 class StorageZoneCreate(BaseModel):
     name: str

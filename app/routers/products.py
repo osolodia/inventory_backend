@@ -6,6 +6,7 @@ from app.db.database import SessionLocal
 from app.models.models import Product
 from app.schemas.schemas import ProductOut, ProductCreate, ProductUpdate
 from typing import Dict, Any
+from decimal import Decimal
 
 router = APIRouter(
     prefix="/products",
@@ -201,7 +202,7 @@ def delete_product( product_id: int, db: Session = Depends(get_db)):
         error_msg = str(e)
         error_details = traceback.format_exc()
         
-        print(f"❌ Ошибка удаления товара {product_id}: {error_details}")
+        print(f"Ошибка удаления товара {product_id}: {error_details}")
         
         # Обработка SQL ошибок из процедуры
         if "Товар с указанным ID не найден" in error_msg:
@@ -249,3 +250,50 @@ def get_product_quantity(
             "quantity": 0,
             "error": str(e)
         }
+    
+@router.get("/{product_id}/fullquantity")
+def get_product_full_quantity(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    try:
+        sql = text("""
+            SELECT 
+                SUM(
+                    get_inventory_quantity(
+                        :product_id,
+                        z.id
+                    )
+                ) as total_quantity_on_warehouse
+            FROM StorageZones z;
+            """)
+            
+        result = db.execute(sql, {
+            'product_id': product_id,
+        })
+        
+        quantity = result.scalar()
+        print(f"Scalar результат: {quantity}")
+        print(f"Тип scalar: {type(quantity)}")
+
+        if isinstance(quantity, Decimal):
+            quantity_int = int(quantity)
+        else:
+            quantity_int = int(quantity) if quantity is not None else 0
+
+        return {
+            "quantity": quantity_int
+        }
+        
+            
+    except Exception as e:
+        # Для отладки выведем полную ошибку
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Ошибка в get_product_quantity: {error_details}")
+        
+        # Возвращаем 0 при ошибке, чтобы фронтенд не падал
+        return {
+            "quantity": 0,
+            "error": str(e)
+        }    
