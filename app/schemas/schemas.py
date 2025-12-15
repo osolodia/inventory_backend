@@ -104,6 +104,7 @@ class CategoryCreate(BaseModel):
 
 # Employee
 class EmployeeOut(BaseModel):
+    id: int
     login: str
     password: str
     first_name: str
@@ -132,7 +133,7 @@ class EmployeeUpdate(BaseModel):
     passport_series: Optional[int] = None
     passport_number: Optional[int] = None
     email: Optional[str] = None
-    numberPhone: Optional[str] = None
+    number_phone: Optional[str] = None
     date_birth: Optional[str] = None
     position_id: Optional[int] = None
     subdivision_id: Optional[int] = None
