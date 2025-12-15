@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, datetime
 from typing import Optional, List
 
 # CompanyType
@@ -38,32 +38,30 @@ class DocumentTypeCreate(BaseModel):
     name: str
 
 # DocumentLine
-class DocumentLineOut(BaseModel):
-    id: int
+class DocumentLineBase(BaseModel):
+    product_id: int
     quantity: int
     actual_quantity: Optional[int] = None
-    product_id: int
-    document_id: int
     storage_zone_sender_id: Optional[int] = None
     storage_zone_receiver_id: Optional[int] = None
 
-    class Config:
-        orm_mode = True
-
-class DocumentLineCreate(BaseModel):
-    quantity: int
-    actual_quantity: Optional[int] = None
-    product_id: int
-    document_id: int
-    storage_zone_sender_id: Optional[int] = None
-    storage_zone_receiver_id: Optional[int] = None
+class DocumentLineCreate(DocumentLineBase):
+    document_id: int  # ID документа, к которому добавляется строка
 
 class DocumentLineUpdate(BaseModel):
     quantity: Optional[int] = None
     actual_quantity: Optional[int] = None
-    product_id: Optional[int] = None
     storage_zone_sender_id: Optional[int] = None
     storage_zone_receiver_id: Optional[int] = None
+
+class DocumentLineOut(DocumentLineBase):
+    id: int
+    document_id: int
+    
+    # Для Pydantic v2.x используйте:
+    model_config = {
+        "from_attributes": True  # заменили orm_mode = True
+    }
 
 # Document
 class DocumentOut(BaseModel):
