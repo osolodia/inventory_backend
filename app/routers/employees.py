@@ -118,16 +118,6 @@ def create_employee(employee: EmployeeCreate, db: Session = Depends(get_db)):
                 detail=error_message
             )
 
-    raise HTTPException(
-        status_code=409,
-        detail="Не удалось подобрать уникальный логин"
-    )
-
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-import pymysql
-
 @router.put("/{employee_id}/update")
 def update_employee(employee_id: int, employee: EmployeeUpdate, db: Session = Depends(get_db)):
     try:

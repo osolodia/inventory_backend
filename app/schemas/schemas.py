@@ -76,11 +76,13 @@ class DocumentOut(BaseModel):
         orm_mode = True
 
 class DocumentCreate(BaseModel):
-    number: str
+    number: Optional[str] = None
     date: date
     comment: Optional[str] = None
     company_id: Optional[int] = None
     document_type_id: int
+    zone_id: Optional[int] = None
+    employee_id: Optional[int] = None
 
 class DocumentUpdate(BaseModel):
     number: Optional[str] = None
@@ -88,6 +90,7 @@ class DocumentUpdate(BaseModel):
     comment: Optional[str] = None
     company_id: Optional[int] = None
     document_type_id: Optional[int] = None
+
 
 # Category 
 class CategoryOut(BaseModel):

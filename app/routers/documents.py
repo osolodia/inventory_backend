@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List, Optional
 from datetime import date
 from app.db.database import SessionLocal
 from app.models.models import Document, Company, DocumentType  # Убраны лишние импорты
 from app.schemas.schemas import DocumentOut, DocumentCreate, DocumentUpdate
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/documents",
@@ -72,6 +77,234 @@ def create_document(document: DocumentCreate, db: Session = Depends(get_db)):
     db.refresh(db_doc)
     
     return db_doc
+
+@router.post("/create_inv_doc")
+def create_inventory_document(doc: DocumentCreate, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"🎯 Начало создания документа. Данные: {doc.dict()}")
+        
+        # Логируем отдельные поля
+        logger.info(f"📄 Номер: {doc.number}")
+        logger.info(f"📅 Дата: {doc.date}")
+        logger.info(f"🔢 Тип документа: {doc.document_type_id}")
+        logger.info(f"🏢 company_id: {doc.company_id}")
+        logger.info(f" employee_id: {doc.employee_id}")
+
+        sql = text("""
+            CALL create_inventory_document(
+                :p_zone_id, :p_employee_id)
+        """)
+        
+        result = db.execute(sql, {
+            'p_zone_id': doc.zone_id,
+            'p_employee_id': doc.employee_id,
+        })
+
+        db.commit()
+
+        row = result.fetchone()
+        if row:
+            document_id = row[0]
+            logger.info(f"✅ Документ создан с ID: {document_id}")
+            
+            # Получаем полные данные документа
+            document = db.query(Document).filter(Document.id == document_id).first()
+            
+            return {
+                "success": True,
+                "document": document,
+                "message": "Document inventory created successfully"
+            }
+        else:
+            logger.error("❌ Процедура не вернула ID документа")
+            raise HTTPException(status_code=500, detail="Failed to create document")
+            
+    except Exception as e:
+        logger.error(f"🔥 КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
+        logger.error(f"🔥 Трассировка:\n{traceback.format_exc()}")
+        
+        # Откатываем транзакцию
+        db.rollback()
+        
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": str(e),
+                "type": type(e).__name__,
+                "traceback": traceback.format_exc()
+            }
+        )
+
+@router.post("/create_rec_doc")
+def create_receipt_document(doc: DocumentCreate, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"🎯 Начало создания документа. Данные: {doc.dict()}")
+        
+        # Логируем отдельные поля
+        logger.info(f"📄 Номер: {doc.number}")
+        logger.info(f"📅 Дата: {doc.date}")
+        logger.info(f"🔢 Тип документа: {doc.document_type_id}")
+        logger.info(f"🏢 company_id: {doc.company_id}")
+        logger.info(f" employee_id: {doc.employee_id}")
+
+        sql = text("""
+            CALL create_receipt_document(
+                :p_company_id, :p_employee_id)
+        """)
+        
+        result = db.execute(sql, {
+            'p_company_id': doc.company_id,
+            'p_employee_id': doc.employee_id,
+        })
+
+        db.commit()
+
+        row = result.fetchone()
+        if row:
+            document_id = row[0]
+            logger.info(f"✅ Документ создан с ID: {document_id}")
+            
+            # Получаем полные данные документа
+            document = db.query(Document).filter(Document.id == document_id).first()
+            
+            return {
+                "success": True,
+                "document": document,
+                "message": "Document receipt created successfully"
+            }
+        else:
+            logger.error("❌ Процедура не вернула ID документа")
+            raise HTTPException(status_code=500, detail="Failed to create document")
+            
+    except Exception as e:
+        logger.error(f"🔥 КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
+        logger.error(f"🔥 Трассировка:\n{traceback.format_exc()}")
+        
+        # Откатываем транзакцию
+        db.rollback()
+        
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": str(e),
+                "type": type(e).__name__,
+                "traceback": traceback.format_exc()
+            }
+        )
+    
+@router.post("/create_trn_doc")
+def create_transfer_document(doc: DocumentCreate, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"🎯 Начало создания документа. Данные: {doc.dict()}")
+        
+        # Логируем отдельные поля
+        logger.info(f"📄 Номер: {doc.number}")
+        logger.info(f"📅 Дата: {doc.date}")
+        logger.info(f"🔢 Тип документа: {doc.document_type_id}")
+        logger.info(f"🏢 company_id: {doc.company_id}")
+        logger.info(f" employee_id: {doc.employee_id}")
+
+        sql = text("""
+            CALL create_transfer_document(
+                :p_employee_id)
+        """)
+        
+        result = db.execute(sql, {
+            'p_employee_id': doc.employee_id,
+        })
+
+        db.commit()
+
+        row = result.fetchone()
+        if row:
+            document_id = row[0]
+            logger.info(f"✅ Документ создан с ID: {document_id}")
+            
+            # Получаем полные данные документа
+            document = db.query(Document).filter(Document.id == document_id).first()
+            
+            return {
+                "success": True,
+                "document": document,
+                "message": "Document transfer created successfully"
+            }
+        else:
+            logger.error("❌ Процедура не вернула ID документа")
+            raise HTTPException(status_code=500, detail="Failed to create document")
+            
+    except Exception as e:
+        logger.error(f"🔥 КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
+        logger.error(f"🔥 Трассировка:\n{traceback.format_exc()}")
+        
+        # Откатываем транзакцию
+        db.rollback()
+        
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": str(e),
+                "type": type(e).__name__,
+                "traceback": traceback.format_exc()
+            }
+        )
+    
+@router.post("/create_wrf_doc")
+def create_writeoff_document(doc: DocumentCreate, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"🎯 Начало создания документа. Данные: {doc.dict()}")
+        
+        # Логируем отдельные поля
+        logger.info(f"📄 Номер: {doc.number}")
+        logger.info(f"📅 Дата: {doc.date}")
+        logger.info(f"🔢 Тип документа: {doc.document_type_id}")
+        logger.info(f"🏢 company_id: {doc.company_id}")
+        logger.info(f" employee_id: {doc.employee_id}")
+
+        sql = text("""
+            CALL create_writeoff_document(
+                :p_company_id, :p_employee_id)
+        """)
+        
+        result = db.execute(sql, {
+            'p_company_id': doc.company_id,
+            'p_employee_id': doc.employee_id,
+        })
+
+        db.commit()
+
+        row = result.fetchone()
+        if row:
+            document_id = row[0]
+            logger.info(f"✅ Документ создан с ID: {document_id}")
+            
+            # Получаем полные данные документа
+            document = db.query(Document).filter(Document.id == document_id).first()
+            
+            return {
+                "success": True,
+                "document": document,
+                "message": "Document writeoff created successfully"
+            }
+        else:
+            logger.error("❌ Процедура не вернула ID документа")
+            raise HTTPException(status_code=500, detail="Failed to create document")
+            
+    except Exception as e:
+        logger.error(f"🔥 КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
+        logger.error(f"🔥 Трассировка:\n{traceback.format_exc()}")
+        
+        # Откатываем транзакцию
+        db.rollback()
+        
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": str(e),
+                "type": type(e).__name__,
+                "traceback": traceback.format_exc()
+            }
+        )
+    
 
 @router.put("/{document_id}", response_model=DocumentOut)
 def update_document(document_id: int, document: DocumentUpdate, db: Session = Depends(get_db)):
