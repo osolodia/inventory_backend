@@ -5,6 +5,7 @@ from typing import List
 from app.db.database import SessionLocal
 from app.models.models import Employee
 from app.schemas.schemas import EmployeeOut, EmployeeUpdate, EmployeeCreate
+from sqlalchemy.exc import DBAPIError
 
 router = APIRouter(
     prefix="/employees",
@@ -65,60 +66,71 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
         role_id=employee.role_id
     )
 
+MAX_LOGIN_ATTEMPTS = 10
 @router.post("/create")
 def create_employee(employee: EmployeeCreate, db: Session = Depends(get_db)):
-    try:
-        # Вызов хранимой процедуры
-        sql = text("""
-            CALL create_employee(
-                :login, :password, :first_name, :last_name,
-                :passport_series, :passport_number, :email, :number_phone,
-                :date_birth, :position_id, :subdivision_id, :role_id
-            )
-        """)
-        
-        result = db.execute(sql, {
-            'login': employee.login,
-            'password': employee.password,
-            'first_name': employee.first_name,
-            'last_name': employee.last_name,
-            'passport_series': employee.passport_series,
-            'passport_number': employee.passport_number,
-            'email': employee.email if employee.email else None,
-            'number_phone': employee.number_phone if employee.number_phone else None,
-            'date_birth': employee.date_birth if employee.date_birth else None,
-            'position_id': employee.position_id,
-            'subdivision_id': employee.subdivision_id,
-            'role_id': employee.role_id
-        })
-        
-        db.commit()
-        
-        # Получаем сообщение из процедуры
-        message = result.fetchone()
-        
-        return {
-            "success": True,
-            "message": message[0] if message else "Сотрудник создан успешно"
-        }
-        
-    except Exception as e:
-        db.rollback()
-        error_msg = str(e)
-        
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"Полная ошибка: {error_details}")
-        
-        raise HTTPException(
-            status_code=500,
-            detail=f"Ошибка создания сотрудника: {str(e)}"
-        )
+    base_login = employee.login
+    login = base_login
 
-@router.put("/{product_id}/update")
+    for attempt in range(MAX_LOGIN_ATTEMPTS):
+        try:
+            sql = text("""
+                CALL create_employee(
+                    :login, :password, :first_name, :last_name,
+                    :passport_series, :passport_number, :email, :number_phone,
+                    :date_birth, :position_id, :subdivision_id, :role_id
+                )
+            """)
+
+            db.execute(sql, {
+                "login": login,
+                "password": employee.password,
+                "first_name": employee.first_name,
+                "last_name": employee.last_name,
+                "passport_series": employee.passport_series,
+                "passport_number": employee.passport_number,
+                "email": employee.email,
+                "number_phone": employee.number_phone,
+                "date_birth": employee.date_birth,
+                "position_id": employee.position_id,
+                "subdivision_id": employee.subdivision_id,
+                "role_id": employee.role_id,
+            })
+
+            db.commit()
+
+            return {
+                "success": True,
+                "login": login,
+                "message": "Сотрудник создан успешно"
+            }
+
+        except DBAPIError as e:
+            db.rollback()
+            error_message = str(e.orig)
+
+            if "логином уже существует" in error_message:
+                login = f"{base_login}{attempt + 1}"
+                continue
+
+            raise HTTPException(
+                status_code=400,
+                detail=error_message
+            )
+
+    raise HTTPException(
+        status_code=409,
+        detail="Не удалось подобрать уникальный логин"
+    )
+
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+import pymysql
+
+@router.put("/{employee_id}/update")
 def update_employee(employee_id: int, employee: EmployeeUpdate, db: Session = Depends(get_db)):
     try:
-        # Вызов хранимой процедуры
         sql = text("""
             CALL update_employee(
                 :id, :login, :password, :first_name, :last_name,
@@ -126,7 +138,7 @@ def update_employee(employee_id: int, employee: EmployeeUpdate, db: Session = De
                 :date_birth, :position_id, :subdivision_id, :role_id
             )
         """)
-        
+
         params = {
             'id': employee_id,
             'login': employee.login,
@@ -142,15 +154,15 @@ def update_employee(employee_id: int, employee: EmployeeUpdate, db: Session = De
             'subdivision_id': employee.subdivision_id,
             'role_id': employee.role_id
         }
-        
+
         result = db.execute(sql, params)
-        
         db.commit()
-        
-        # Получаем сообщение из процедуры
+
+        # Получаем сообщение из процедуры (если есть)
         message_row = result.fetchone()
         message = message_row[0] if message_row else "Сотрудник обновлён"
 
+        # Возвращаем обновлённого сотрудника
         get_sql = text("""
             SELECT 
                 id, login, password, first_name, last_name, passport_series, passport_number,
@@ -158,32 +170,29 @@ def update_employee(employee_id: int, employee: EmployeeUpdate, db: Session = De
             FROM employees 
             WHERE id = :employee_id
         """)
-        
         updated_employee = db.execute(get_sql, {'employee_id': employee_id}).fetchone()
-        
         if not updated_employee:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Сотрудник с ID {employee_id} не найден после обновления"
-            )
-        
+            raise HTTPException(status_code=404, detail=f"Сотрудник с ID {employee_id} не найден после обновления")
+
         return {
             "success": True,
-            "message": message[0] if message else "Сотрудник создан успешно"
+            "message": message,
+            "employee": dict(updated_employee._mapping)  # Преобразуем Row в dict
         }
-        
+
+    except pymysql.err.OperationalError as e:
+        # Ловим SIGNAL SQLSTATE из процедуры
+        if e.args[0] == 1644:  # SIGNAL из процедуры
+            raise HTTPException(status_code=400, detail=e.args[1])
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления сотрудника: {str(e)}")
+
     except Exception as e:
         db.rollback()
-        error_msg = str(e)
-        
         import traceback
         error_details = traceback.format_exc()
         print(f"Полная ошибка: {error_details}")
-        
-        raise HTTPException(
-            status_code=500,
-            detail=f"Ошибка обновления сотрудника: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления сотрудника: {str(e)}")
+
     
 @router.delete("/{employee_id}/delete")
 def delete_employee( employee_id: int, db: Session = Depends(get_db)):

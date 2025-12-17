@@ -120,7 +120,20 @@ class EmployeeOut(BaseModel):
         orm_mode = True
 
 class EmployeeCreate(EmployeeOut):
-    pass
+    id: Optional[int] = None
+    
+    login: str
+    password: str
+    first_name: str
+    last_name: str
+    passport_series: int
+    passport_number: int
+    email: Optional[str] = None
+    number_phone: Optional[str] = None
+    date_birth: Optional[date] = None
+    position_id: int
+    subdivision_id: int
+    role_id: int
 
 class EmployeeUpdate(BaseModel):
     id: Optional[int] = None
