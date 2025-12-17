@@ -71,7 +71,7 @@ def create_document(document: DocumentCreate, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Company not found")
     
     # Создаем документ
-    db_doc = Document(**document.dict())
+    db_doc = Document(**document.dict(exclude={"zone_id", "employee_id"}))
     db.add(db_doc)
     db.commit()
     db.refresh(db_doc)
