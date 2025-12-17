@@ -70,10 +70,11 @@ def get_document_lines_debug(
                 "document_id": line.document_id,
                 "product_id": line.product_id,
                 "quantity": line.quantity,
+                "actual_quantity": line.actual_quantity,
                 "storage_zone_sender_id": line.storage_zone_sender_id,
                 "storage_zone_receiver_id": line.storage_zone_receiver_id
             })
-            print(f"   - Line {line.id}: product={line.product_id}, qty={line.quantity}")
+            print(f"   - Line {line.id}: product={line.product_id}, qty={line.quantity}, actual_qty={line.actual_quantity}")
         
         return {
             "document_id": document_id,
@@ -255,17 +256,18 @@ def update_document_line(
         if not existing_line:
             raise HTTPException(status_code=404, detail="Document line not found")
         
-        # Подготавливаем параметры
+        # Подготавливаем параметры с actual_quantity
         params = {
             "p_line_id": line_id,
             "p_quantity": document_line.quantity if document_line.quantity is not None else existing_line.quantity,
+            "p_actual_quantity": document_line.actual_quantity if document_line.actual_quantity is not None else existing_line.actual_quantity,
             "p_storage_from": document_line.storage_zone_sender_id if document_line.storage_zone_sender_id is not None else existing_line.storage_zone_sender_id,
             "p_storage_to": document_line.storage_zone_receiver_id if document_line.storage_zone_receiver_id is not None else existing_line.storage_zone_receiver_id
         }
         
-        # Вызываем хранимую процедуру update_document_line
+        # Вызываем обновленную хранимую процедуру update_document_line
         result = db.execute(
-            text("CALL update_document_line(:p_line_id, :p_quantity, :p_storage_from, :p_storage_to)"),
+            text("CALL update_document_line(:p_line_id, :p_quantity, :p_actual_quantity, :p_storage_from, :p_storage_to)"),
             params
         )
         
